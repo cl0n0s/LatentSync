@@ -25,7 +25,9 @@ from latentsync.whisper.audio2feature import Audio2Feature
 
 def main(config, args):
     # Check if the GPU supports float16
-    is_fp16_supported = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] > 7
+    is_fp16_supported = (
+        torch.cuda.is_available() and torch.cuda.get_device_capability()[0] > 7
+    )
     dtype = torch.float16 if is_fp16_supported else torch.float32
 
     print(f"Input video path: {args.video_path}")
@@ -41,7 +43,9 @@ def main(config, args):
     else:
         raise NotImplementedError("cross_attention_dim must be 768 or 384")
 
-    audio_encoder = Audio2Feature(model_path=whisper_model_path, device="cuda", num_frames=config.data.num_frames)
+    audio_encoder = Audio2Feature(
+        model_path=whisper_model_path, device="cuda", num_frames=config.data.num_frames
+    )
 
     vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=dtype)
     vae.config.scaling_factor = 0.18215
@@ -84,6 +88,8 @@ def main(config, args):
         weight_dtype=dtype,
         width=config.data.resolution,
         height=config.data.resolution,
+        run_type=args.run_type,
+        affine_output_path=args.affine_output_path,
     )
 
 
@@ -97,6 +103,10 @@ if __name__ == "__main__":
     parser.add_argument("--inference_steps", type=int, default=20)
     parser.add_argument("--guidance_scale", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=1247)
+    parser.add_argument(
+        "--run_type", type=str, default=None, choices=["FACE", "INFER", None]
+    )
+    parser.add_argument("--affine_output_path", type=str, default="affine_output.pt")
     args = parser.parse_args()
 
     config = OmegaConf.load(args.unet_config_path)
